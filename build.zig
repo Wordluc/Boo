@@ -22,13 +22,19 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    exe.addIncludePath(.{ .cwd_relative = "SDL//include//" });
-    exe.addLibraryPath(.{ .cwd_relative = "SDL/lib//" });
-    exe.addObjectFile(b.path("SDL//bin//SDL2.dll"));
-    b.installBinFile("SDL/bin/SDL2.dll", "SDL2");
-    exe.linkLibC();
-    // standard location when the user invokes the "install" step (the default
-    // step when running `zig build`).
+    if (target.result.os.tag == .linux) {
+        // The SDL package doesn't work for Linux yet, so we rely on system
+        // packages for now.
+        exe.linkSystemLibrary("SDL2");
+        exe.linkLibC();
+    } else {
+        const sdl_dep = b.dependency("SDL", .{
+            .optimize = .ReleaseFast,
+            .target = target,
+        });
+        exe.linkLibrary(sdl_dep.artifact("SDL2"));
+    } // standard location when the user invokes the "install" step (the default
+      // step when running `zig build`).
     b.installArtifact(exe);
 
     // This *creates* a Run step in the build graph, to be executed when another

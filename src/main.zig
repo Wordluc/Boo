@@ -1,7 +1,8 @@
-const c = @cImport({
-    @cInclude("SDL2//SDL.h");
-});
-
+const c = @cImport(@cInclude("SDL2/SDL.h"));
+const vect=struct {
+    x:c_int,
+    y:c_int
+};
 const assert = @import("std").debug.assert;
 const std = @import("std");
 const rnd = std.rand.init(0);
@@ -75,7 +76,7 @@ pub fn main() !void {
     head = head_t{ .x = 0, .y = 0, .size = 10, .tail = null };
     apple = apple_t{ .x = 200, .y = 200, .size = 10 };
     screen = c.SDL_CreateWindow("My Game Window", c.SDL_WINDOWPOS_UNDEFINED, c.SDL_WINDOWPOS_UNDEFINED, 400, 400, c.SDL_WINDOW_OPENGL) orelse
-        {
+    {
         c.SDL_Log("Unable to create window: %s", c.SDL_GetError());
         return error.SDLInitializationFailed;
     };
@@ -88,6 +89,9 @@ pub fn main() !void {
     try head.move(0, 0);
     apple.?.draw();
     var event: c.SDL_Event = undefined;
+    var state_keyboard: [*c]const u8 = undefined;
+    state_keyboard = c.SDL_GetKeyboardState(null);
+    var speed_head =vect{.x=speed,.y=0};
     while (!quit) {
         while (c.SDL_PollEvent(&event) != 0) {
             switch (event.type) {
@@ -97,24 +101,26 @@ pub fn main() !void {
                 else => {},
             }
         }
-        switch (event.key.keysym.sym) {
-            c.SDLK_UP => {
-                try head.move(0, -speed);
-            },
-            c.SDLK_DOWN => {
-                try head.move(0, speed);
-            },
-            c.SDLK_LEFT => {
-                try head.move(-speed, 0);
-            },
-            c.SDLK_RIGHT => {
-                try head.move(speed, 0);
-            },
-            c.SDLK_q => {
-                break;
-            },
-            else => {},
+        if (state_keyboard[c.SDL_SCANCODE_UP]==1){
+                speed_head.y=-speed;
+                speed_head.x=0;
+        }else
+        if (state_keyboard[c.SDL_SCANCODE_DOWN]==1){
+                speed_head.y=speed;
+                speed_head.x=0;
+        }else
+        if (state_keyboard[c.SDL_SCANCODE_LEFT]==1){
+                speed_head.x=-speed;
+                speed_head.y=0;
+        }else
+        if (state_keyboard[c.SDL_SCANCODE_RIGHT]==1){
+                speed_head.x=speed;
+                speed_head.y=0;
+        }else
+        if (state_keyboard[c.SDL_SCANCODE_Q]==1){
+            break;
         }
+        try head.move(speed_head.x, speed_head.y);
         if (head.is_colliding()) {
             break;
         }
